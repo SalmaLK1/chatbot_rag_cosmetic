@@ -23,7 +23,7 @@ from nltk.tokenize import sent_tokenize
 
 # === CONFIGURATION ===
 INDEX_PATH = os.path.join(os.getcwd(), "index/arx_faiss")
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "AIzaSyAYAk_uVA7zIl6XCCiblBSsUwpGMTBBvvU")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
 CACHE_DIR = os.path.join(os.getcwd(), "cache")
 os.makedirs(CACHE_DIR, exist_ok=True)
 os.makedirs(os.path.dirname(INDEX_PATH), exist_ok=True)

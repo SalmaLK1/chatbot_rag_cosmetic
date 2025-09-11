@@ -34,3 +34,4 @@ backend/__pycache__/
 
 # Fichiers spécifiques à ignorer
 installe_model.py
+".env" 
