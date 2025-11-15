@@ -127,7 +127,6 @@ Le rapport détaillé est disponible en [PDF](./assets/chatbot.pdf).
 
 ## 👤 Auteur
 **Lakehal Salma**  
-**Bouizdouzene Bilal**  
 _Master Web Intelligence et Data Science_  
 Université Sidi Mohamed Ben Abdellah – Fès / Université Sorbonne Paris Nord
 
@@ -137,8 +136,8 @@ Université Sidi Mohamed Ben Abdellah – Fès / Université Sorbonne Paris Nord
 ## ⚙️ Installation & Exécution
 ```bash
 # Cloner le dépôt
-git clone https://github.com/BilalBouizdouzene/chatbot-rag.git
-cd DS_CHATBOT_RAG
+git clone https://github.com/SalmaLK1/chatbot_rag_cosmetic.git
+cd chatbot_rag_cosmetic
 
 # Créer un environnement virtuel
 python -m venv .venv
