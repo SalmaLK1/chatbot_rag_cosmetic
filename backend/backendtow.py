@@ -19,7 +19,10 @@ from transformers import BlipProcessor, BlipForConditionalGeneration
 import tiktoken
 from reportlab.platypus import SimpleDocTemplate, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
-from nltk.tokenize import sent_tokenize
+# from nltk.tokenize import sent_tokenize  # Lazy load
+from .config import AUTO_PERSIST_STRUCTURED
+from .data_extractor import DataExtractor, DataProcessor
+from .models import db as sqldb
 
 # === CONFIGURATION ===
 INDEX_PATH = os.path.join(os.getcwd(), "index/arx_faiss")
@@ -30,24 +33,63 @@ os.makedirs(os.path.dirname(INDEX_PATH), exist_ok=True)
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+# Initialisation lazy des modèles (chargement à la demande)
 genai.configure(api_key=GOOGLE_API_KEY)
-model = genai.GenerativeModel("models/gemini-2.5-pro")
-whisper_model = whisper.load_model("base")
+model = None
+whisper_model = None
 
 # Embeddings et modèles
-embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+embeddings = None
+cross_encoder = None
 db = None
 
 # Tokenizer pour compter précisément les tokens
 tokenizer = tiktoken.get_encoding("gpt2")
 
 # === BLIP IMAGE CAPTIONING ===
-blip_processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
-blip_model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
+blip_processor = None
+blip_model = None
+
+# Fonctions lazy loading
+def get_model():
+    global model
+    if model is None:
+        logging.info("Chargement du modèle Gemini...")
+        model = genai.GenerativeModel("models/gemini-2.5-pro")
+    return model
+
+def get_whisper_model():
+    global whisper_model
+    if whisper_model is None:
+        logging.info("Chargement du modèle Whisper...")
+        whisper_model = whisper.load_model("base")
+    return whisper_model
+
+def get_embeddings():
+    global embeddings
+    if embeddings is None:
+        logging.info("Chargement des embeddings...")
+        embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+    return embeddings
+
+def get_cross_encoder():
+    global cross_encoder
+    if cross_encoder is None:
+        logging.info("Chargement du cross-encoder...")
+        cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+    return cross_encoder
+
+def get_blip_models():
+    global blip_processor, blip_model
+    if blip_processor is None:
+        logging.info("Chargement des modèles BLIP...")
+        blip_processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
+        blip_model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
+    return blip_processor, blip_model
 
 def describe_image_with_blip(image_path):
     try:
+        blip_processor, blip_model = get_blip_models()
         image = Image.open(image_path).convert("RGB")
         inputs = blip_processor(images=image, return_tensors="pt")
         out = blip_model.generate(**inputs)
@@ -59,6 +101,7 @@ def describe_image_with_blip(image_path):
 # === UTILS ===
 
 def chunk_text_semantically(text, max_tokens=500, overlap_tokens=100):
+    from nltk.tokenize import sent_tokenize
     sentences = sent_tokenize(text)
     chunks = []
     current_chunk = []
@@ -192,11 +235,17 @@ def evaluate_answer_quality(answer: str, context_docs: list, model_name="sentenc
 def load_faiss_index():
     global db
     try:
-        db = FAISS.load_local(INDEX_PATH, embeddings, allow_dangerous_deserialization=True)
+        emb = get_embeddings()
+        db = FAISS.load_local(INDEX_PATH, emb, allow_dangerous_deserialization=True)
         logging.info(" Index FAISS chargé.")
     except Exception as e:
         logging.warning(f" Index non trouvé ou invalide, création d'un index vide : {e}")
-        db = FAISS.from_documents([], embeddings)
+        # Créer un document placeholder pour initialiser l'index
+        emb = get_embeddings()
+        placeholder = Document(page_content="placeholder", metadata={"source": "init"})
+        db = FAISS.from_documents([placeholder], emb)
+        # Supprimer le document placeholder
+        db.delete([db.index_to_docstore_id[0]])
         db.save_local(INDEX_PATH)
         logging.info(" Index FAISS vide créé.")
 
@@ -206,8 +255,11 @@ def reload_faiss_index():
 
 def reset_faiss_index():
     global db
-    logging.info(" Réinitialisation de l’index FAISS...")
-    db = FAISS.from_documents([], embeddings)
+    logging.info(" Réinitialisation de l'index FAISS...")
+    emb = get_embeddings()
+    placeholder = Document(page_content="placeholder", metadata={"source": "init"})
+    db = FAISS.from_documents([placeholder], emb)
+    db.delete([db.index_to_docstore_id[0]])
     db.save_local(INDEX_PATH)
     logging.info(" Index FAISS réinitialisé.")
 
@@ -252,6 +304,37 @@ def add_document_to_index(text, metadata=None):
     except Exception as e:
         logging.error(f"Erreur ajout document à l'index : {e}")
         return False
+
+# === STRUCTURED DATA AUTO-PERSISTENCE ===
+
+def _auto_persist_structured(text: str, source_name: str, source_type: str = "FILE"):
+    """Analyse le texte avec Gemini et persiste en BD si activé.
+
+    Cette opération est best-effort: en cas d'erreur (quota, réseau), on log et on continue.
+    """
+    try:
+        if not AUTO_PERSIST_STRUCTURED:
+            return
+        if not text or len(text.strip()) < 50:
+            # Evite les très petits contenus
+            return
+        if not GOOGLE_API_KEY:
+            logging.info("AUTO_PERSIST_STRUCTURED actif mais GOOGLE_API_KEY manquant; skip")
+            return
+
+        extractor = DataExtractor(GOOGLE_API_KEY)
+        structured = extractor.parse_ingredients_and_products(text)
+        has_payload = any([
+            structured.get("products"),
+            structured.get("ingredients_info"),
+            structured.get("incompatibilities"),
+        ])
+        if has_payload:
+            # On utilise le nom du fichier comme 'source_file'
+            DataProcessor.process_extraction(structured, sqldb, source_name)
+            logging.info("Données structurées persistées automatiquement")
+    except Exception as e:
+        logging.warning(f"Auto-persist structuré ignoré: {e}")
 
 # === EXTRACTION ===
 
@@ -303,7 +386,8 @@ def transcribe_audio(audio_input):
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
             tmp.write(file_bytes)
             tmp_path = tmp.name
-        result = whisper_model.transcribe(tmp_path)
+        asr_model = get_whisper_model()
+        result = asr_model.transcribe(tmp_path)
         os.remove(tmp_path)
         with open(cache_path, "w", encoding="utf-8") as f:
             json.dump(result, f, ensure_ascii=False, indent=2)
@@ -318,7 +402,8 @@ def rerank_documents(query, docs, top_k=4):
     if not docs:
         return []
     pairs = [(query, doc.page_content) for doc in docs]
-    scores = cross_encoder.predict(pairs)
+    encoder = get_cross_encoder()
+    scores = encoder.predict(pairs)
     scored_docs = sorted(zip(scores, docs), key=lambda x: x[0], reverse=True)
     return [doc for _, doc in scored_docs[:top_k]]
 
@@ -393,14 +478,15 @@ Tu es un assistant IA expert. Voici une question d'utilisateur, des extraits doc
 
     for attempt in range(retries):
         try:
-            response = model.generate_content(prompt)
+            llm_model = get_model()
+            response = llm_model.generate_content(prompt)
             #full_answer = response.text.strip()
             if response.candidates and response.candidates[0].content.parts:
                 full_answer = "".join(
                     [part.text for part in response.candidates[0].content.parts if hasattr(part, "text")]
                 ).strip()
             else:
-                full_answer = " Désolé, je n’ai pas pu générer de réponse."
+                full_answer = " Désolé, je n'ai pas pu générer de réponse."
 
 
             # Résumé automatique de la réponse pour simplicité
@@ -412,18 +498,11 @@ Texte :
 
 Résumé :
 """.strip()
-            summary_response = model.generate_content(summary_prompt)
+            summary_response = llm_model.generate_content(summary_prompt)
             answer_summary = summary_response.text.strip()
 
-            # Construction infos chunks utilisés
-            chunks_info = "\n\n📂 Chunks utilisés :\n"
-            for doc in context_docs:
-                title = doc.metadata.get("title", "Document inconnu")
-                chunk_index = doc.metadata.get("chunk_index", "N/A")
-                preview = summarize_text(doc.page_content, max_chars=300)
-                chunks_info += f"- 📄 *{title}* | Chunk #{chunk_index} :\n{preview}\n\n"
-
-            final_response = f"{full_answer}\n\n📄 Résumé : {answer_summary}\n{chunks_info}"
+            # Ne pas afficher les chunks utilisés dans la réponse
+            final_response = f"{full_answer}\n\n📄 Résumé : {answer_summary}"
 
             return final_response, context_docs
 
@@ -443,7 +522,8 @@ def rag_direct_prompt(query, chat_history=None, nb_messages=5, retries=3):
     prompt = build_prompt_with_context(chat_history[-nb_messages:], query)
     for attempt in range(retries):
         try:
-            response = model.generate_content(prompt)
+            llm_model = get_model()
+            response = llm_model.generate_content(prompt)
             return response.text.strip()
         except Exception as e:
             logging.warning(f"Tentative {attempt+1} échouée : {e}")
@@ -498,6 +578,11 @@ def handle_uploaded_file(file, question=None, chat_history=None, use_rag=True, n
     }
 
     add_document_to_index(text, metadata=metadata)
+    # Persistance automatique des données structurées (best-effort)
+    try:
+        _auto_persist_structured(text, source_name=file.filename, source_type=os.path.splitext(file.filename)[1].lower())
+    except Exception:
+        pass
 
     if question:
         prompt = f"{question.strip()}\n\nContenu du fichier :\n{text.strip()}"
@@ -519,12 +604,18 @@ def handle_multiple_uploaded_files(files, question=None, chat_history=None, use_
         file.seek(0)
         doc_id = get_file_hash(file_bytes)
         title = get_title_from_filename(file.filename)
+        ext = os.path.splitext(file.filename)[1].lower()
         metadata = {
             "document_id": doc_id,
             "source": file.filename,
             "title": title
         }
         add_document_to_index(text, metadata=metadata)
+        # Persistance automatique par fichier (best-effort)
+        try:
+            _auto_persist_structured(text, source_name=file.filename, source_type=ext)
+        except Exception:
+            pass
         all_text += f"\n\n### Fichier : {file.filename} ###\n{text.strip()}"
 
     if not all_text.strip():

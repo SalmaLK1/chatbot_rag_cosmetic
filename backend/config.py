@@ -39,3 +39,12 @@ GOOGLE_API_KEY = ''
 # Limite de taille maximale pour les fichiers uploadés (en Mégaoctets)
 # Empêche l'upload de fichiers trop volumineux qui pourraient saturer la mémoire
 MAX_FILE_SIZE_MB = 20  # Limite taille fichier en Mo (ajustable)
+
+# ==============================
+# PERSISTENCE AUTOMATIQUE DES DONNÉES STRUCTURÉES
+# ==============================
+
+# Active l'enregistrement automatique en base des données structurées
+# extraites (produits, ingrédients, incompatibilités) après extraction.
+# Peut être contrôlé via la variable d'environnement AUTO_PERSIST_STRUCTURED=0/1
+AUTO_PERSIST_STRUCTURED = bool(int(os.getenv("AUTO_PERSIST_STRUCTURED", "1")))

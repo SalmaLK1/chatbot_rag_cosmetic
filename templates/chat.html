@@ -36,8 +36,13 @@
   <aside id="sidebar">
     <header class="sidebar-header">
       <div class="brand">
-        <i class="fas fa-robot brand-icon"></i>
-        <h2>ChatBot IA</h2>
+        <div style="font-size: 1.5rem; background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7)); padding: 8px 12px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+          <i class="fas fa-robot"></i>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: flex-start;">
+          <h2>ChatBot IA</h2>
+          <span style="font-size: 0.75rem; opacity: 0.9; margin-top: -4px;">RAG Multimodal</span>
+        </div>
       </div>
       <button id="new-chat-btn" class="new-chat-btn" title="Nouvelle conversation">
         <i class="fas fa-plus"></i>
@@ -99,9 +104,20 @@
 
     <section id="chat-history" class="chat-history" aria-label="Historique de la conversation">
       <div class="welcome-message">
-        <div class="welcome-icon"><i class="fas fa-comments"></i></div>
+        <div class="welcome-icon"><i class="fas fa-sparkles"></i></div>
         <h3>Bienvenue dans votre assistant IA</h3>
         <p>Posez vos questions ou importez des documents pour commencer une conversation intelligente.</p>
+        <div class="welcome-badges" style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+          <span class="badge" style="background: linear-gradient(135deg, #2563eb, #3b82f6); color: white; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.875rem; font-weight: 500;">
+            <i class="fas fa-search"></i> RAG avancé
+          </span>
+          <span class="badge" style="background: linear-gradient(135deg, #06b6d4, #0891b2); color: white; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.875rem; font-weight: 500;">
+            <i class="fas fa-microphone"></i> Audio
+          </span>
+          <span class="badge" style="background: linear-gradient(135deg, #10b981, #34d399); color: white; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.875rem; font-weight: 500;">
+            <i class="fas fa-file-upload"></i> Fichiers
+          </span>
+        </div>
       </div>
     </section>
 
@@ -135,7 +151,7 @@
           </div>
         </div>
         <div class="form-options">
-          <label class="rag-toggle">
+          <label class="rag-toggle" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(6, 182, 212, 0.08)); padding: 8px 12px; border-radius: 12px; border: 1px solid rgba(37, 99, 235, 0.2);">
             <input type="checkbox" id="use-rag" checked>
             <span class="toggle-slider"></span>
             <span class="toggle-label">
