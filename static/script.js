@@ -505,7 +505,13 @@ async function loadChatList() {
       throw new Error(`Erreur HTTP: ${res.status}`);
     }
     const data = await res.json();
-    chats = Array.isArray(data) ? data : [];
+    
+    // Récupérer les threads masqués du localStorage
+    const hiddenThreads = JSON.parse(localStorage.getItem('hidden_threads') || '[]');
+    
+    // Filtrer les threads masqués de l'affichage
+    chats = Array.isArray(data) ? data.filter(chat => !hiddenThreads.includes(chat.thread_id)) : [];
+    
     renderChatList();
   } catch (err) {
     console.error("Erreur chargement chats:", err);
@@ -565,7 +571,7 @@ function renderChatList() {
 
     chatElem.find('.delete-btn').on("click", async (e) => {
       e.stopPropagation();
-      if (confirm(`Êtes-vous sûr de vouloir supprimer la conversation "${chat.title}" ?`)) {
+      if (confirm(`Êtes-vous sûr de vouloir masquer la conversation "${chat.title}" ?\n\n⚠️ Note : La conversation sera masquée de votre affichage mais reste dans la base de données.`)) {
         await deleteThread(chat.thread_id);
       }
     });
@@ -665,14 +671,29 @@ async function loadChatHistory(threadId) {
  * Affiche le message de bienvenue
  */
 function showWelcomeMessage(customMessage = null) {
+  // Vider complètement l'historique d'abord
+  chatHistoryElem.empty();
+  
   const message = customMessage || "Posez vos questions ou importez des documents pour commencer une conversation intelligente.";
   chatHistoryElem.html(`
     <div class="welcome-message">
       <div class="welcome-icon">
-        <i class="fas fa-comments"></i>
+        <i class="fas fa-spa"></i>
       </div>
-      <h3>Bienvenue dans votre assistant IA</h3>
-      <p>${message}</p>
+      <h3>Bienvenue sur CosmétiQ'IA</h3>
+      <p>Je suis votre assistante beauté CosmétiQ'IA. Importez vos fiches produits cosmétiques (PDF) pour une analyse complète des ingrédients, compatibilités et conseils personnalisés.</p>
+      
+      <div class="welcome-badges" style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+        <span class="badge" style="background: linear-gradient(135deg, #2B8BD4, #5BA4E0); color: white; padding: 0.65rem 1.25rem; border-radius: 25px; font-size: 0.875rem; font-weight: 600; box-shadow: 0 8px 24px rgba(43, 139, 212, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2) inset; backdrop-filter: blur(10px); transition: all 0.3s ease; cursor: pointer;">
+          <i class="fas fa-leaf"></i> Analyses produits
+        </span>
+        <span class="badge" style="background: linear-gradient(135deg, rgba(122, 195, 240, 0.95), rgba(227, 244, 251, 0.95)); backdrop-filter: blur(10px); color: #0F2A3E; padding: 0.65rem 1.25rem; border-radius: 25px; font-size: 0.875rem; font-weight: 600; box-shadow: 0 8px 24px rgba(122, 195, 240, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.3) inset; transition: all 0.3s ease; cursor: pointer;">
+          <i class="fas fa-flask"></i> Ingrédients
+        </span>
+        <span class="badge" style="background: linear-gradient(135deg, #2B8BD4, #3DB9E8); color: white; padding: 0.65rem 1.25rem; border-radius: 25px; font-size: 0.875rem; font-weight: 600; box-shadow: 0 8px 24px rgba(43, 139, 212, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2) inset; backdrop-filter: blur(10px); transition: all 0.3s ease; cursor: pointer;">
+          <i class="fas fa-check-circle"></i> Compatibilités
+        </span>
+      </div>
     </div>
   `);
 }
@@ -980,18 +1001,23 @@ async function sendMessage(e) {
 }
 
 /**
- * Supprime un thread
+ * Supprime un thread de l'affichage uniquement (pas de la base de données)
  */
 async function deleteThread(threadId) {
   try {
-    const res = await fetch(`/threads/${encodeURIComponent(threadId)}`, { 
-      method: 'DELETE' 
-    });
+    // NE PAS appeler l'API DELETE - seulement masquer localement
+    // const res = await fetch(`/threads/${encodeURIComponent(threadId)}`, { 
+    //   method: 'DELETE' 
+    // });
     
-    if (!res.ok) {
-      throw new Error(`Erreur HTTP: ${res.status}`);
+    // Ajouter le thread_id à la liste des threads masqués dans localStorage
+    const hiddenThreads = JSON.parse(localStorage.getItem('hidden_threads') || '[]');
+    if (!hiddenThreads.includes(threadId)) {
+      hiddenThreads.push(threadId);
+      localStorage.setItem('hidden_threads', JSON.stringify(hiddenThreads));
     }
 
+    // Retirer de l'affichage local uniquement
     chats = chats.filter(c => c.thread_id !== threadId);
 
     if (currentThreadId === threadId) {
@@ -1003,10 +1029,10 @@ async function deleteThread(threadId) {
     }
 
     renderChatList();
-    showNotification("Conversation supprimée avec succès", 'success');
+    showNotification("Conversation masquée de votre affichage", 'success');
   } catch (err) {
-    console.error("Erreur suppression thread:", err);
-    showNotification("Erreur lors de la suppression", 'error');
+    console.error("Erreur masquage thread:", err);
+    showNotification("Erreur lors du masquage", 'error');
   }
 }
 

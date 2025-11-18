@@ -3,7 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Chatbot RAG IA - Multi-chat</title>
+  <title>CosmétiQ'IA - Assistant Beauté Intelligent</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -37,11 +43,11 @@
     <header class="sidebar-header">
       <div class="brand">
         <div style="font-size: 1.5rem; background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7)); padding: 8px 12px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-          <i class="fas fa-robot"></i>
+          <i class="fas fa-spa"></i>
         </div>
         <div style="display: flex; flex-direction: column; align-items: flex-start;">
-          <h2>ChatBot IA</h2>
-          <span style="font-size: 0.75rem; opacity: 0.9; margin-top: -4px;">RAG Multimodal</span>
+          <h2>CosmétiQ'IA</h2>
+          <span style="font-size: 0.75rem; opacity: 0.9; margin-top: -4px;">Beauté & Intelligence</span>
         </div>
       </div>
       <button id="new-chat-btn" class="new-chat-btn" title="Nouvelle conversation">
@@ -84,7 +90,7 @@
     <header id="chat-header" class="chat-header">
       <div class="chat-header-info">
         <h2 id="chat-title">Nouvelle conversation</h2>
-        <span class="chat-subtitle">Assistant IA avec recherche documentaire</span>
+        <span class="chat-subtitle">Analyse intelligente de vos fiches produits & réponses beauté personnalisées</span>
       </div>
       <div class="chat-header-actions">
         <button class="header-btn" id="settings-btn" title="Paramètres">
@@ -104,18 +110,18 @@
 
     <section id="chat-history" class="chat-history" aria-label="Historique de la conversation">
       <div class="welcome-message">
-        <div class="welcome-icon"><i class="fas fa-sparkles"></i></div>
-        <h3>Bienvenue dans votre assistant IA</h3>
-        <p>Posez vos questions ou importez des documents pour commencer une conversation intelligente.</p>
+        <div class="welcome-icon"><i class="fas fa-spa"></i></div>
+        <h3>Bonjour !</h3>
+        <p>Je suis votre assistante beauté <strong>CosmétiQ'IA</strong>.<br>Importez vos fiches produits, et je vous aiderai à les analyser 💄</p>
         <div class="welcome-badges" style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-          <span class="badge" style="background: linear-gradient(135deg, #2563eb, #3b82f6); color: white; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.875rem; font-weight: 500;">
-            <i class="fas fa-search"></i> RAG avancé
+          <span class="badge" style="background: linear-gradient(135deg, #2B8BD4, #5BA4E0); color: white; padding: 0.65rem 1.25rem; border-radius: 25px; font-size: 0.875rem; font-weight: 600; box-shadow: 0 8px 24px rgba(43, 139, 212, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2) inset; backdrop-filter: blur(10px); transition: all 0.3s ease; cursor: pointer;" onmouseover="this.style.transform='translateY(-4px) scale(1.05)'; this.style.boxShadow='0 12px 32px rgba(43, 139, 212, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.3) inset'" onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 8px 24px rgba(43, 139, 212, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2) inset'">
+            <i class="fas fa-leaf"></i> Analyses produits
           </span>
-          <span class="badge" style="background: linear-gradient(135deg, #06b6d4, #0891b2); color: white; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.875rem; font-weight: 500;">
-            <i class="fas fa-microphone"></i> Audio
+          <span class="badge" style="background: linear-gradient(135deg, rgba(122, 195, 240, 0.95), rgba(227, 244, 251, 0.95)); backdrop-filter: blur(10px); color: #0F2A3E; padding: 0.65rem 1.25rem; border-radius: 25px; font-size: 0.875rem; font-weight: 600; box-shadow: 0 8px 24px rgba(122, 195, 240, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.3) inset; transition: all 0.3s ease; cursor: pointer;" onmouseover="this.style.transform='translateY(-4px) scale(1.05)'; this.style.boxShadow='0 12px 32px rgba(122, 195, 240, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.4) inset'" onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 8px 24px rgba(122, 195, 240, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.3) inset'">
+            <i class="fas fa-flask"></i> Ingrédients
           </span>
-          <span class="badge" style="background: linear-gradient(135deg, #10b981, #34d399); color: white; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.875rem; font-weight: 500;">
-            <i class="fas fa-file-upload"></i> Fichiers
+          <span class="badge" style="background: linear-gradient(135deg, #2B8BD4, #3DB9E8); color: white; padding: 0.65rem 1.25rem; border-radius: 25px; font-size: 0.875rem; font-weight: 600; box-shadow: 0 8px 24px rgba(43, 139, 212, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2) inset; backdrop-filter: blur(10px); transition: all 0.3s ease; cursor: pointer;" onmouseover="this.style.transform='translateY(-4px) scale(1.05)'; this.style.boxShadow='0 12px 32px rgba(43, 139, 212, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.3) inset'" onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 8px 24px rgba(43, 139, 212, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2) inset'">
+            <i class="fas fa-check-circle"></i> Compatibilités
           </span>
         </div>
       </div>
@@ -136,7 +142,7 @@
     <div class="chat-input-container">
       <form id="chat-form" autocomplete="off" class="chat-form">
         <div class="input-wrapper">
-          <textarea id="chat-input" placeholder="Tapez votre message ici..." rows="1" required class="chat-textarea"></textarea>
+          <textarea id="chat-input" placeholder="Écrivez votre message ici..." rows="1" required class="chat-textarea"></textarea>
           <div class="input-actions">
             <button type="button" id="record-btn" class="action-btn record-btn" title="Enregistrer un message audio">
               <i class="fas fa-microphone"></i>
@@ -151,7 +157,7 @@
           </div>
         </div>
         <div class="form-options">
-          <label class="rag-toggle" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(6, 182, 212, 0.08)); padding: 8px 12px; border-radius: 12px; border: 1px solid rgba(37, 99, 235, 0.2);">
+          <label class="rag-toggle" style="background: linear-gradient(135deg, rgba(43, 139, 212, 0.08), rgba(122, 195, 240, 0.08)); padding: 8px 12px; border-radius: 12px; border: 1px solid rgba(43, 139, 212, 0.25);">
             <input type="checkbox" id="use-rag" checked>
             <span class="toggle-slider"></span>
             <span class="toggle-label">
@@ -227,18 +233,18 @@
 <div id="info-modal" class="modal" aria-hidden="true">
   <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="info-title">
     <div class="modal-header">
-      <h3 id="info-title">Informations sur l'Assistant</h3>
+      <h3 id="info-title">À propos de CosmétiQ'IA</h3>
       <button class="modal-close" aria-label="Fermer">&times;</button>
     </div>
     <div class="modal-body">
       <div class="info-section">
-        <h4><i class="fas fa-robot"></i> Fonctionnalités</h4>
+        <h4><i class="fas fa-spa"></i> Fonctionnalités</h4>
         <ul>
-          <li>Chat intelligent avec IA</li>
-          <li>Recherche dans vos documents (RAG)</li>
-          <li>Support de fichiers multiples</li>
-          <li>Enregistrement audio</li>
-          <li>Export des conversations</li>
+          <li>Analyse intelligente de fiches produits cosmétiques</li>
+          <li>Extraction d'ingrédients et composition</li>
+          <li>Vérification de compatibilité produits</li>
+          <li>Réponses sourcées avec citations PDF</li>
+          <li>Export des analyses et conversations</li>
         </ul>
       </div>
       <div class="info-section">
